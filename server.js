@@ -15,13 +15,22 @@ mongoose
   .connect(DB, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
+    // useCreateIndex: true,
+    // useFindAndModify: false,
   })
   .then(() => console.log('Database connected successfully.....!'));
 
 const PORT = process.env.PORT || 3000;
 // app listening to our random port number
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`The server is running on http://localhost:${PORT}`);
+});
+
+// unhandled rejection error handling
+process.on('unhandledRejection', (err) => {
+  console.log(err.name, err.message);
+  console.log('Unhandled Rejection Shutting down...');
+  server.close(() => {
+    process.exit(1);
+  });
 });

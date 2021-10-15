@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
 
 const tourSchema = new mongoose.Schema(
   {
@@ -7,7 +8,10 @@ const tourSchema = new mongoose.Schema(
       required: [true, 'A tour must have a name'],
       unique: [true, 'A tour name must be unique'],
       trim: true,
+      maxlength: [40, 'The tour must have at most 40 character'],
+      minlength: [10, 'The tour mush have at least 10 character'],
     },
+    slug: String,
     duration: {
       type: Number,
       required: [true, 'A tour must have duration'],
@@ -25,11 +29,18 @@ const tourSchema = new mongoose.Schema(
       required: [true, 'A tour must have a price'],
     },
 
-    priceDiscount: Number,
+    priceDiscount: {
+      type: Number,
+      validate: function (value) {
+        return value < this.price;
+      },
+    },
 
     ratingsAverage: {
       type: Number,
       default: 4.5,
+      min: [1, 'Rating must be above 1'],
+      max: [5, 'Rating must be below 5'],
     },
     ratingsQuantity: {
       type: Number,
@@ -68,8 +79,14 @@ tourSchema.virtual('durationWeeks').get(function () {
 });
 
 // mongodb document middleware
-tourSchema.pre('save', function () {
-  return this;
+tourSchema.pre('save', function (next) {
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+tourSchema.post('save', (docs, next) => {
+  console.log(docs);
+  next();
 });
 
 // NOTE: Models are like collections, each model can have different Schema
