@@ -5,12 +5,36 @@ const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
+const { findById } = require('../models/userModel');
 
 // generating token
 const signToken = (_id) =>
   jwt.sign({ id: _id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
+
+const createSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id);
+
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+
+  // because secure only works using production
+  if (process.env.NOVE_ENV === 'production') cookieOptions.secure = true;
+  res.cookie('jwt', token, cookieOptions);
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
 
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
@@ -21,15 +45,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     role: req.body.role,
   });
 
-  const token = signToken(newUser._id);
-
-  res.status(201).json({
-    status: 'success',
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  createSendToken(newUser, 201, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -55,12 +71,7 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Incorrect password', 401));
   }
 
-  const token = signToken(user._id);
-
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 // middleware for protecting some hidden routes
@@ -188,11 +199,25 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   user.passwordResetExpires = undefined;
   await user.save();
 
-  // login the user in
-  const token = signToken(user._id);
+  createSendToken(user, 200, res);
+});
 
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+// updating current user password
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  const { oldPassword, password, passwordConfirm } = req.body;
+  // chech if the user exist or not
+  const user = await User.findById(req.user.id).select('+password');
+  if (!user) {
+    return next(new AppError('User with the email not found !', 404));
+  }
+
+  if (!(await user.correctPassword(oldPassword, user.password))) {
+    return next(new AppError("Old password doesn't match", 401));
+  }
+
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
+  await user.save();
+
+  createSendToken(user, 200, res);
 });

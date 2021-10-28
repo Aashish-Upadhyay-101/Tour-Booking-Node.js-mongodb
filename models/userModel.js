@@ -50,6 +50,12 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
 });
 
 // pre middleware for password encryption
@@ -60,6 +66,20 @@ userSchema.pre('save', async function (next) {
   /* hashing password with cost of 12... (here the cost the lower the cost low CPU intensive and high risk of hackiing... higher it is higher the cpu intensive but secured!) */
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
+  next();
+});
+
+// updating password changed at field
+userSchema.pre('save', function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 1500;
+  next();
+});
+
+// query middleware
+userSchema.pre('/^find/', function (next) {
+  this.find({ active: { $ne: false } });
   next();
 });
 
