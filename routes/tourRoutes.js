@@ -14,8 +14,12 @@ const {
 
 // const AuthController = require('../controllers/authController');
 const { protect, restrictTo } = require('../controllers/authController');
+// const reviewController = require('../controllers/reviewController');
+const reviewRouter = require('./reviewRoutes');
 
 const router = express.Router();
+
+router.use('/:tourId/review', reviewRouter);
 
 // router.param('id', checkID); // it is also called params validating / validator (to check or to perform certain operations on the basis of parameters....the 'id' is the key of the req.params object...)
 
@@ -29,5 +33,9 @@ router
   .get(getTour)
   .patch(updateTour)
   .delete(protect, restrictTo('admin', 'lead-guide'), deleteTour);
+
+// router
+//   .route('/:tourId/review')
+//   .post(protect, restrictTo('user'), reviewController.createReview);
 
 module.exports = router;

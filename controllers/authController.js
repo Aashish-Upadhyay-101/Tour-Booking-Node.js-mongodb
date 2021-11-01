@@ -5,7 +5,7 @@ const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
-const { findById } = require('../models/userModel');
+// const { findById } = require('../models/userModel');
 
 // generating token
 const signToken = (_id) =>
