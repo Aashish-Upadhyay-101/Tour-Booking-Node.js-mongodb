@@ -2,6 +2,7 @@ const fs = require('fs');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const factory = require('./handlerFactory');
 
 // accessing json data of all the a/vailable tours
 const tours = JSON.parse(
@@ -30,6 +31,12 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.getMe = (req, res, next) => {
+  req.userData = req.user.id;
+  // console.log(userData);
+  next();
+};
 
 exports.createUser = (req, res) => {
   res.status(500).json({
@@ -72,23 +79,19 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getUser = (req, res) => {
-  res.status(500).json({
-    status: 'server error',
-    message: 'This route is not yet defined',
-  });
-};
+exports.getUser = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.userData.id);
 
-exports.updateUser = (req, res) => {
-  res.status(500).json({
-    status: 'server error',
-    message: 'This route is not yet defined',
-  });
-};
+  // if (!user) {
+  //   return next(new AppError('No user found !', 404));
+  // }
 
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'server error',
-    message: 'This route is not yet defined',
+  res.status(200).json({
+    status: 'success',
+    user,
   });
-};
+});
+
+exports.updateUser = factory.updateOne(User);
+
+exports.deleteUser = factory.deleteOne(User);
