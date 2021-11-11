@@ -1,6 +1,5 @@
-// error handling for async function
-const catchAsync = (fn) => (req, res, next) => {
-  fn(req, res, next).catch((err) => next(err));
+module.exports = fn => {
+  return (req, res, next) => {
+    fn(req, res, next).catch(next);
+  };
 };
-
-module.exports = catchAsync;

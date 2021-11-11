@@ -1,46 +1,59 @@
 const express = require('express');
-const {
-  getAllTours,
-  getTour,
-  createTour,
-  updateTour,
-  deleteTour,
-  aliasTopTours,
-  getTourStats,
-  getMonthlyPlan,
-  getToursWithin,
-  // checkID,
-  // checkBody,
-} = require('../controllers/tourController');
-
-// const AuthController = require('../controllers/authController');
-const { protect, restrictTo } = require('../controllers/authController');
-// const reviewController = require('../controllers/reviewController');
-const reviewRouter = require('./reviewRoutes');
+const tourController = require('./../controllers/tourController');
+const authController = require('./../controllers/authController');
+const reviewRouter = require('./../routes/reviewRoutes');
 
 const router = express.Router();
 
-router.use('/:tourId/review', reviewRouter);
+// router.param('id', tourController.checkID);
 
-// router.param('id', checkID); // it is also called params validating / validator (to check or to perform certain operations on the basis of parameters....the 'id' is the key of the req.params object...)
+// POST /tour/234fad4/reviews
+// GET /tour/234fad4/reviews
 
-router.route('/top-5-cheap').get(aliasTopTours, getAllTours);
-router.route('/tour-stats').get(getTourStats);
-router.route('/monthly-plan/:year').get(getMonthlyPlan);
+router.use('/:tourId/reviews', reviewRouter);
+
+router
+  .route('/top-5-cheap')
+  .get(tourController.aliasTopTours, tourController.getAllTours);
+
+router.route('/tour-stats').get(tourController.getTourStats);
+router
+  .route('/monthly-plan/:year')
+  .get(
+    authController.protect,
+    authController.restrictTo('admin', 'lead-guide', 'guide'),
+    tourController.getMonthlyPlan
+  );
 
 router
   .route('/tours-within/:distance/center/:latlng/unit/:unit')
-  .get(getToursWithin);
+  .get(tourController.getToursWithin);
+// /tours-within?distance=233&center=-40,45&unit=mi
+// /tours-within/233/center/-40,45/unit/mi
 
-router.route('/').get(protect, getAllTours).post(createTour);
+router.route('/distances/:latlng/unit/:unit').get(tourController.getDistances);
+
+router
+  .route('/')
+  .get(tourController.getAllTours)
+  .post(
+    authController.protect,
+    authController.restrictTo('admin', 'lead-guide'),
+    tourController.createTour
+  );
+
 router
   .route('/:id')
-  .get(getTour)
-  .patch(updateTour)
-  .delete(protect, restrictTo('admin', 'lead-guide', 'user'), deleteTour);
-
-// router
-//   .route('/:tourId/review')
-//   .post(protect, restrictTo('user'), reviewController.createReview);
+  .get(tourController.getTour)
+  .patch(
+    authController.protect,
+    authController.restrictTo('admin', 'lead-guide'),
+    tourController.updateTour
+  )
+  .delete(
+    authController.protect,
+    authController.restrictTo('admin', 'lead-guide'),
+    tourController.deleteTour
+  );
 
 module.exports = router;
